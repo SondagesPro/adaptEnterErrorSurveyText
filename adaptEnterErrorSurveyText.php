@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2016 Denis Chenu <http://www.sondages.pro>
  * @license AGPL v3
- * @version 0.0.1
+ * @version 0.0.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -129,11 +129,17 @@ class adaptEnterErrorSurveyText extends PluginBase {
       if(strpos($name,"-"))
       {
         $aNameLang=explode("-",$name);
-        if(!isset($aLangSettings[$aNameLang[0]]))
-        {
-          $aLangSettings[$aNameLang[0]]=array();
+        $name=$aNameLang[0];
+        if(isset($aNameLang[2])){
+          $lang="{$aNameLang[1]}-{$aNameLang[2]}";
+        }else{
+          $lang="{$aNameLang[1]}";
         }
-        $aLangSettings[$aNameLang[0]][$aNameLang[1]]=$value[$aNameLang[1]];
+        if(!isset($aLangSettings[$name]))
+        {
+          $aLangSettings[$name]=array();
+        }
+        $aLangSettings[$name][$lang]=$value[$lang];
       }
       else
       {
@@ -308,8 +314,12 @@ class adaptEnterErrorSurveyText extends PluginBase {
         {
           $aFixedSettings[$aNameLang[0]]=array();
         }
-        //~ tracevar($aFixedSettings[$aNameLang[0]]);
-        $aFixedSettings[$aNameLang[0]][$aNameLang[1]]=$value[$aNameLang[1]];
+        if(isset($aNameLang[2])){
+          $lang="{$aNameLang[1]}-{$aNameLang[2]}";
+        }else{
+          $lang="{$aNameLang[1]}";
+        }
+        $aFixedSettings[$aNameLang[0]][$lang]=$value[$lang];
       }
       else
       {
