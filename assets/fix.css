@@ -1,0 +1,33 @@
+/**
+ * fix class for html5 editor in 2.50 and up
+ */
+.wysihtml5-toolbar .btn{
+    background-color: #ffffff;
+    border: 1px solid #cccccc;
+}
+.icon-pencil{
+    display: inline-block;
+    font-family: FontAwesome;
+}
+.icon-pencil::before {
+    content: "";
+}
+.icon-th-list::before {
+    content: "";
+}
+.icon-indent-right::before {
+    content: "";
+}
+.icon-indent-left::before {
+    content: "";
+}
+.icon-th-list,
+.icon-pencil,
+.icon-indent-right,
+.icon-indent-left
+{
+    display: inline-block;
+    font-family: FontAwesome;
+}
+
+

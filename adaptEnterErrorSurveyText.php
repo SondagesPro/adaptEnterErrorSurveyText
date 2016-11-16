@@ -1,11 +1,12 @@
 <?php
 /**
- * Plugin for limesurvey : Use your own string and text when user trye to enter a survey : not started/ expired / bad token.
+ *Plugin for limesurvey : Use your own string and text when user trye to enter a survey : not started/ expired / bad token.
  *
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2016 Denis Chenu <http://www.sondages.pro>
+ * @copyright 2016 Advantages <http://www.advantages.pro>
  * @license AGPL v3
- * @version 0.0.2
+ * @version 0.0.3
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +21,7 @@
 class adaptEnterErrorSurveyText extends PluginBase {
     protected $storage = 'DbStorage';
 
-    static protected $description = 'Use your own string and text when user trye to enter a survey : not started/ expired / bad token.';
+    static protected $description = 'Use your own string and text when user trye to enter a survey : not started, expired or bad token.';
     static protected $name = 'adaptEnterErrorSurveyText';
 
   /**
@@ -31,8 +32,8 @@ class adaptEnterErrorSurveyText extends PluginBase {
   protected $settings=array(
     "useCompletedTemplate"=>array(
       'type'=>'checkbox',
-      'label'=>'Use completed template file to render the text',
-      'help'=>'If you not activate this : the message is render inside a div with id wrapper.',
+      'label'=>'Use completed.pstpl template file to render the text',
+      'help'=>'If you not activate this : the message is render with %s.',
       'htmlOptions'=>array(
         'uncheckValue'=>'',
       ),
@@ -47,9 +48,12 @@ class adaptEnterErrorSurveyText extends PluginBase {
   private $errorTexts=array(
     'errorTextNotStarted'=>'Error html text to be shown when a respondant try to enter a not started survey',
     'errorTextExpired'=>'Error html text to be shown when a respondant try to enter an expired survey',
+    'errorTextUsedToken'=>'Error html text to be shown when a respondant try to enter a survey with an already used token',
+
+    /* this part need to be in beforeController event */
+    //~ 'errorTextBadToken'=>'Error html text to be shown when a respondant try to enter a survey with a bad token',
+    //~ 'errorTextNotExist'=>'Error html text to be shown when a respondant try to enter a unexisting survey',
     //~ 'errorTextNotActive'=>'Error html text to be shown when a respondant try to enter a survey not activated (if empty : show the default 404 error).',
-    'errorTextBadToken'=>'Error html text to be shown when a respondant try to enter a survey with a bad token',
-    'errorTextNotExist'=>'Error html text to be shown when a respondant try to enter a unexisting survey',
   );
 
   /**
@@ -58,12 +62,13 @@ class adaptEnterErrorSurveyText extends PluginBase {
   private $translation=array(
     'Error html text to be shown when a respondant try to enter a not started survey'=>array('fr'=>"Texte à montrer quand le questionnaire n'est pas commencé"),
     'Error html text to be shown when a respondant try to enter an expired survey'=>array('fr'=>"Texte à montrer quand le questionnaire est terminé"),
-    'Error html text to be shown when a respondant try to enter a survey with a bad token'=>array('fr'=>"Texte à montrer en cas de mauvaise saisie du jeton"),
     'Error html text to be shown when a respondant try to enter a unexisting survey'=>array('fr'=>"Texte à montrer si le questionnaire n'exite pas ou plus"),
+    'Error html text to be shown when a respondant try to enter a survey with an already used token'=>array('fr'=>"Texte à montrer si le code d'invitation est déjà utilisé"),
+    'Error html text to be shown when a respondant try to enter a survey with a bad token'=>array('fr'=>"Texte à montrer en cas de mauvaise saisie du jeton"),
+
     'HTML text to be shown in %s.'=>array('fr'=>"Code HTML à utiliser pour la langue %s."),
     'Use completed.pstpl template file to render the text'=>array('fr'=>"UItiliser le fichier completed.pstpl pour le rendu du texte"),
-    'If you not activate this : the message is render inside a div with id wrapper.'=>array('fr'=>"Si vous ne cochez pas cette case, le rendu utiliser un div avec l'id wrapper."),
-
+    'If you not activate this : the message is render with %s.'=>array('fr'=>"Si vous ne cochez pas cette case, le rendu utilisera ce code : %s."),
   );
 
   /**
@@ -92,7 +97,12 @@ class adaptEnterErrorSurveyText extends PluginBase {
       $aCurrent[$setting]=$this->get($setting,'Survey',$oEvent->get('survey'),array());
       $aDefaultSettings[$setting]=$this->get($setting);
     }
-
+    $apiVersion=explode(".",App()->getConfig("versionnumber"));
+    if($apiVersion[0]>2 && $apiVersion[1]>=50)
+    {
+      $cssUrl = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/fix.css');
+      Yii::app()->clientScript->registerCssFile($cssUrl);
+    }
     foreach($aLang as $sLang)
     {
       $newSettings["title-$sLang"]=array(
@@ -102,10 +112,18 @@ class adaptEnterErrorSurveyText extends PluginBase {
       foreach($this->errorTexts as $setting=>$label)
       {
         $newSettings["{$setting}-{$sLang}"]=array(
-          'type'=>'text',
+          'type'=>'html',
           'label'=>$this->gT($label),
           'htmlOptions'=>array(
-            'class'=>'form-control'
+            'class'=>'form-control',
+            'height'=>'10em',
+          ),
+          'height'=>'10em',
+          'editorOptions'=>array(
+            "font-styles"=> false,
+            "html"=> true,
+            "link"=> false, // broken in LS
+            "image"=> false, // broken in LS
           ),
           'localized'=>true,
           'language'=>$sLang,
@@ -166,6 +184,7 @@ class adaptEnterErrorSurveyText extends PluginBase {
       {
         $this->ThrowExpired();
         $this->ThrowNotStarted();
+        $this->ThrowToken();
       }
     }
   }
@@ -181,13 +200,53 @@ class adaptEnterErrorSurveyText extends PluginBase {
   }
   public function ThrowNotStarted()
   {
-
     $iSurveyId = $this->event->get('surveyId');
     $oSurvey=Survey::model()->findByPk($this->event->get('surveyId'));
     if($oSurvey->startdate && $oSurvey->startdate >= dateShift(date("Y-m-d H:i:s"), "Y-m-d H:i:s", Yii::app()->getConfig("timeadjust")))
     {
       $this->renderError('errorTextNotStarted');
     }
+  }
+  public function ThrowToken()
+  {
+    $iSurveyId = $this->event->get('surveyId');
+    $oSurvey=Survey::model()->findByPk($this->event->get('surveyId'));
+    if(tableExists("{{tokens_".$iSurveyId."}}"))
+    {
+      $token=Yii::app()->request->getParam('token','');
+      if($token)
+      {
+        $oToken=Token::model($iSurveyId)->find("token=:token",array(':token' => $token));
+        $now = dateShift(date("Y-m-d H:i:s"), "Y-m-d H:i:s", Yii::app()->getConfig("timeadjust"));
+        tracevar(array(
+          strtotime($now) < strtotime($oToken->validfrom),
+          strtotime($now),
+          strtotime($oToken->validfrom)
+
+          )
+        );
+        if(!$oToken)
+        {
+          // @todo
+        }
+        elseif($oToken->completed!="N" && $oSurvey->alloweditaftercompletion != 'Y')
+        {
+          $this->renderError('errorTextUsedToken');
+        }
+        elseif($oToken->validfrom && strtotime($now) < strtotime($oToken->validfrom))
+        {
+          $this->renderError('errorTextNotStarted');
+        }
+        elseif($oToken->validuntil && strtotime($now) > strtotime($oToken->validuntil))
+        {
+          $this->renderError('errorTextExpired');
+        }
+      }
+    }
+    //~ if($oSurvey->startdate && $oSurvey->startdate >= dateShift(date("Y-m-d H:i:s"), "Y-m-d H:i:s", Yii::app()->getConfig("timeadjust")))
+    //~ {
+      //~ $this->renderError('errorTextNotStarted');
+    //~ }
   }
   /**
    * Set the language to be used
@@ -216,10 +275,10 @@ class adaptEnterErrorSurveyText extends PluginBase {
   public function renderError($setting)
   {
     $iSurveyId = $this->event->get('surveyId');
-    $aSurveyMessages=$this->get($setting,'Survey',$this->event->get('surveyId'),array());
+    $aSurveyMessages=array_filter($this->get($setting,'Survey',$this->event->get('surveyId'),array()));
     $aDefaultMessages=$this->get($setting,null,null,array());
     $aMessage=array_merge($aDefaultMessages,$aSurveyMessages);
-    if(empty($aMessage[$this->language]))
+    if(empty($aMessage[$this->language]) || !trim($aMessage[$this->language]))
     {
       return;
     }
@@ -227,9 +286,28 @@ class adaptEnterErrorSurveyText extends PluginBase {
     $oSurvey=Survey::model()->findByPk($this->event->get('surveyId'));
     // Set the language for templatereplace
     SetSurveyLanguage($iSurveyId, $this->language);
-    $templateDir=Template::getTemplatePath($oSurvey->template);
+    $lsVersion=App()->getConfig("versionnumber");
+    $aVersion=explode(".",$lsVersion);
+    if($aVersion[0]==2 && $aVersion[1]<=6)
+    {
+      $this->renderMessage206($aMessage[$this->language],$oSurvey->template);
+    }
+    else
+    {
+      $this->renderMessage250($aMessage[$this->language],$oSurvey->template);
+    }
+
     /* 2.06 quick system (no render ...) */
-    $renderData['message']=$aMessage[$this->language];
+
+  }
+
+  /**
+   * render a public message for 2.06 and lesser
+   */
+  public function renderMessage206($message,$template)
+  {
+    $templateDir=Template::getTemplatePath($template);
+    $renderData['message']=$message;
     App()->controller->layout='bare';
     $renderData['language']=$this->language;
     if (getLanguageRTL($this->language))
@@ -243,12 +321,33 @@ class adaptEnterErrorSurveyText extends PluginBase {
     $renderData['templateDir']=$templateDir;
     $renderData['useCompletedTemplate']=$this->get('useCompletedTemplate',null,null,$this->settings['useCompletedTemplate']['default']);
     Yii::setPathOfAlias('adaptEnterErrorSurveyText', dirname(__FILE__));
-    App()->controller->render("adaptEnterErrorSurveyText.views.public",$renderData);
-
-    //App()->getController()->render('layouts.bare',array('content'=>$content));
+    App()->controller->render("adaptEnterErrorSurveyText.views.2_06.public",$renderData);
     App()->end();
   }
-
+  /**
+   * render a public message for 2.50 and up
+   */
+  public function renderMessage250($message,$template)
+  {
+    $oTemplate = Template::model()->getInstance($template);
+    $templateDir= $oTemplate->viewPath;
+    $renderData['message']=$message;
+    App()->controller->layout='bare';
+    $renderData['language']=$this->language;
+    if (getLanguageRTL($this->language))
+    {
+      $renderData['dir'] = ' dir="rtl" ';
+    }
+    else
+    {
+      $renderData['dir'] = '';
+    }
+    $renderData['templateDir']=$templateDir;
+    $renderData['useCompletedTemplate']=$this->get('useCompletedTemplate',null,null,$this->settings['useCompletedTemplate']['default']);
+    Yii::setPathOfAlias('adaptEnterErrorSurveyText', dirname(__FILE__));
+    App()->controller->render("adaptEnterErrorSurveyText.views.2_50.public",$renderData);
+    App()->end();
+  }
   /**
    * Add the settings by lang
    * The core system is broken or hard to use : seems we can not have same setting with different language (the name is the key)
@@ -259,14 +358,23 @@ class adaptEnterErrorSurveyText extends PluginBase {
     $restrictedToLanguage=trim(Yii::app()->getConfig('restrictToLanguages'));
     if(empty($restrictedToLanguage))
     {
-      $aLang=array_keys(getLanguageData(false, Yii::app()->getConfig('defaultlang')));
+      //~ $aLang=array_keys(getLanguageData(false, Yii::app()->getConfig('defaultlang')));
+      //~ Yii::app()->setFlashMessage($this->gT("you have too many language, only default is shown."),'error');
+      $aLang=array(Yii::app()->getConfig('defaultlang'));
     }
     else
     {
       $aLang=explode(' ',$restrictedToLanguage);
     }
     $this->settings["useCompletedTemplate"]["label"]=$this->gT($this->settings["useCompletedTemplate"]["label"]);
-    $this->settings["useCompletedTemplate"]["help"]=$this->gT($this->settings["useCompletedTemplate"]["help"]);
+    $this->settings["useCompletedTemplate"]["help"]=sprintf($this->gT($this->settings["useCompletedTemplate"]["help"]),'<code>&lt;div id="wrapper"&gt;&lt;p id="token"&gt Your message &lt;p&gt;&lt;div&gt;</code>');
+
+    $apiVersion=explode(".",App()->getConfig("versionnumber"));
+    if($apiVersion[0]>2 && $apiVersion[1]>=50)
+    {
+      $cssUrl = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/fix.css');
+      Yii::app()->clientScript->registerCssFile($cssUrl);
+    }
 
     foreach($aLang as $sLang)
     {
@@ -278,11 +386,19 @@ class adaptEnterErrorSurveyText extends PluginBase {
       foreach($this->errorTexts as $setting=>$label)
       {
         $this->settings["{$setting}-{$sLang}"]=array(
-          // 'name'=>$setting, see bug report
-          'type'=>'text',
+          // 'name'=>$setting, see bug report : https://bugs.limesurvey.org/view.php?id=11666
+          'type'=>'html',
           'label'=>$this->gT($label),
+          'height'=>'10em',
           'htmlOptions'=>array(
-            'class'=>'form-control'
+            'class'=>'form-control',
+            'height'=>'10em',
+          ),
+          'editorOptions'=>array(
+            "font-styles"=> false,
+            "html"=> true,
+            "link"=> false, // broken in LS
+            "image"=> false, // broken in LS
           ),
           'localized'=>true,
           'language'=>$sLang,
@@ -332,7 +448,7 @@ class adaptEnterErrorSurveyText extends PluginBase {
   /**
    * quick language system
    */
-  public function gT($string)
+  private function gT($string)
   {
     if(isset($this->translation[$string][Yii::app()->language]))
     {
