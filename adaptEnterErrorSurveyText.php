@@ -97,7 +97,8 @@ class adaptEnterErrorSurveyText extends PluginBase {
       $aCurrent[$setting]=$this->get($setting,'Survey',$oEvent->get('survey'),array());
       $aDefaultSettings[$setting]=$this->get($setting);
     }
-    if($aVersion[0]>2 || $aVersion[1]>=50)
+    $apiVersion=explode(".",App()->getConfig("versionnumber"));
+    if($apiVersion[0]>2 && $apiVersion[1]>=50)
     {
       $cssUrl = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/fix.css');
       Yii::app()->clientScript->registerCssFile($cssUrl);
@@ -368,9 +369,8 @@ class adaptEnterErrorSurveyText extends PluginBase {
     $this->settings["useCompletedTemplate"]["label"]=$this->gT($this->settings["useCompletedTemplate"]["label"]);
     $this->settings["useCompletedTemplate"]["help"]=sprintf($this->gT($this->settings["useCompletedTemplate"]["help"]),'<code>&lt;div id="wrapper"&gt;&lt;p id="token"&gt Your message &lt;p&gt;&lt;div&gt;</code>');
 
-    $lsVersion=App()->getConfig("versionnumber");
-    $aVersion=explode(".",$lsVersion);
-    if($aVersion[0]>2 || $aVersion[1]>=50)
+    $apiVersion=explode(".",App()->getConfig("versionnumber"));
+    if($apiVersion[0]>2 && $apiVersion[1]>=50)
     {
       $cssUrl = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/fix.css');
       Yii::app()->clientScript->registerCssFile($cssUrl);
