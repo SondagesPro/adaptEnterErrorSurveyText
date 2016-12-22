@@ -116,14 +116,15 @@ class adaptEnterErrorSurveyText extends PluginBase {
           'label'=>$this->gT($label),
           'htmlOptions'=>array(
             'class'=>'form-control',
-            'height'=>'10em',
+            'height'=>'6em',
           ),
-          'height'=>'10em',
+          'height'=>'6em',
           'editorOptions'=>array(
             "font-styles"=> false,
             "html"=> true,
             "link"=> false, // broken in LS
             "image"=> false, // broken in LS
+            "lists"=>false,
           ),
           'localized'=>true,
           'language'=>$sLang,
@@ -392,7 +393,7 @@ class adaptEnterErrorSurveyText extends PluginBase {
           'height'=>'10em',
           'htmlOptions'=>array(
             'class'=>'form-control',
-            'height'=>'10em',
+            'height'=>'15em',
           ),
           'editorOptions'=>array(
             "font-styles"=> false,
