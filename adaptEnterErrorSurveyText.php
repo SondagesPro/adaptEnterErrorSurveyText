@@ -18,7 +18,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-class adaptEnterErrorSurveyText extends PluginBase {
+class adaptEnterErrorSurveyText extends \ls\pluginmanager\PluginBase {
     protected $storage = 'DbStorage';
 
     static protected $description = 'Use your own string and text when user trye to enter a survey : not started, expired or bad token.';
