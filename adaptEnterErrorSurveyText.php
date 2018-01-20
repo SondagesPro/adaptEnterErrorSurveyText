@@ -1,12 +1,12 @@
 <?php
 /**
- *Plugin for limesurvey : Use your own string and text when user trye to enter a survey : not started/ expired / bad token.
+ *Plugin for limesurvey : Use your own string and text when user try to enter a survey : not started / expired / bad token.
  *
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2016 Denis Chenu <http://www.sondages.pro>
  * @copyright 2016 Advantages <http://www.advantages.pro>
  * @license AGPL v3
- * @version 0.0.3
+ * @version 0.0.4
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

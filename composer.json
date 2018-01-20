@@ -1,0 +1,15 @@
+{
+    "name": "sondagesPro/adaptEnterErrorSurveyText",
+    "description": "Use your own string and text when user try to enter a survey : not started / expired / bad token.",
+    "type": "limesurvey-plugin",
+    "homepage": "https://github.com/SondagesPro/adaptEnterErrorSurveyText",
+    "license": "AGPL-3.0+",
+    "authors": [
+        {
+            "name": "Denis Chenu",
+            "email": "contact@sondages.pro"
+        }
+    ],
+    "minimum-stability": "alpha",
+    "require": {}
+}
